@@ -5,6 +5,8 @@ from plotly.subplots import make_subplots
 import pandas as pd
 import plotly.express as px
 import os
+from scipy.interpolate import make_interp_spline
+import numpy as np
 
 # sample = '#004_ast#02_coated'
 
@@ -353,9 +355,10 @@ def drawFigureTestbench(sample):
 
     figure = go.Figure(fig_data).update_layout(
 
-        title='Testbench Parameter',
+        title='Testbench Parameter (' + sample + ')',
         title_font=dict(size=30, color='black'),
         title_x=0.5,
+
 
         hoverlabel=dict(bgcolor='white', font_size=14),
         hovermode='x unified',
@@ -381,7 +384,7 @@ def drawFigureTestbench(sample):
                    mirror=True,
                    ),
 
-        yaxis=dict(title='arbitrary unit',
+        yaxis=dict(title='arbitrary unit [Y1]',
                    title_font=dict(size=24, color='black'),
                    tickfont=dict(size=20, color='black'),
                    gridcolor='lightgrey',
@@ -401,7 +404,7 @@ def drawFigureTestbench(sample):
                    mirror=True,
                    range=[0, 1.2]),
 
-        yaxis2=dict(title='arbitrary unit',
+        yaxis2=dict(title='arbitrary unit [Y2]',
                     overlaying='y',
                     side='right',
                     title_font=dict(size=24, color='black'),
@@ -428,6 +431,7 @@ def drawFigureTestbench(sample):
         ),
         plot_bgcolor='white',
     )
+
     return figure
 
 def drawFigurePOL(sample):
@@ -456,21 +460,31 @@ def drawFigurePOL(sample):
         j = []
         erry = []
 
-        for current in currents:
-            if current > 3:
-                u.append(cycle_df[cycle_df['current_set'] == current]['voltage'][240:300].mean())
-                j.append(current / 25)
-                erry.append(cycle_df[cycle_df['current_set'] == current]['voltage'][240:300].std())
-            else:
-                u.append(cycle_df[cycle_df['current_set'] == current]['voltage'][60:120].mean())
-                j.append(current / 25)
-                erry.append(cycle_df[cycle_df['current_set'] == current]['voltage'][60:120].std())
+        print(i, currents)
 
-        name = cycle_df['Time Stamp'][0]
+        for current in currents:
+            print(len(cycle_df[cycle_df['current_set'] == current]['voltage']))
+            j.append(current / 25)
+            if current == 0:
+                u.append(cycle_df[cycle_df['current_set'] == current]['voltage'][0:59].mean())
+                erry.append(cycle_df[cycle_df['current_set'] == current]['voltage'][0:59].std())
+            if current < 3 and current != 0:
+                u.append(cycle_df[cycle_df['current_set'] == current]['voltage'][60:120].mean())
+                erry.append(cycle_df[cycle_df['current_set'] == current]['voltage'][60:120].std())
+            if current > 3 :
+                u.append(cycle_df[cycle_df['current_set'] == current]['voltage'][240:300].mean())
+                erry.append(cycle_df[cycle_df['current_set'] == current]['voltage'][240:300].std())
+
+
+
+        ast_cycle = cycle_df['variable_01'][0]
+        load_cycles = cycle_df['variable_02'][0] * (ast_cycle - 1)
+
+        name = '@ ' + str(load_cycles)[:-2] + ' Load Cycles'
 
         traces.append(
             go.Scatter(x=j, y=u, mode="markers+lines", marker=dict(size=10, color=palette[c]), error_y=dict(array=erry),
-                       name=name, )
+                       name=name)
         )
 
         if c > 5:
@@ -851,6 +865,128 @@ def drawFigurePOLInc():
         plot_bgcolor='white',
     )
     return figure
+
+def drawFigureASR(sample):
+
+    file_asr = r'data' + '\\' + sample + '\hfr.csv'
+
+    palette = px.colors.qualitative.Bold
+
+    fig = go.Figure()
+
+    # DATAFRAMES
+    try:
+        data_df_asr = pd.read_csv(file_asr, encoding='cp1252', low_memory=False)
+    except:
+        return
+
+    data_df_asr = data_df_asr.sort_values(by=['date', 'time', 'amp'], ascending=[True, True, False])
+
+    count = sorted(data_df_asr['#'].unique())
+    print(count)
+
+    c = 0
+    for i in count:
+        cycle_df_asr = data_df_asr[data_df_asr['#'] == i].reset_index(drop=True)
+
+        current_density = cycle_df_asr['amp'][0]
+        date = cycle_df_asr['date'][0]
+        time = cycle_df_asr['time'][0]
+
+
+        f_low = 1E+3
+        f_high = 1E+4
+
+        cycle_df_asr = cycle_df_asr[(cycle_df_asr['Hz']> f_low) & (cycle_df_asr['Hz'] < f_high)]
+        cycle_df_asr = cycle_df_asr[cycle_df_asr['ohm.1'] < 0]
+
+        asr = cycle_df_asr[cycle_df_asr['ohm.1'] == min(cycle_df_asr['ohm.1'])]['ohm'].iloc[0] * 1000 * 25
+        print(asr)
+
+        z_real_asr = cycle_df_asr['ohm'] * 1000 * 25
+        z_imag_asr = cycle_df_asr['ohm.1'] * -1000 * 25
+
+        name_asr = str(date) + ' ' + str(time) + str(current_density) + ' [A/cm²]' + ' ASR ~' + str(round(asr,0)) +' [mOhm*cm²]'
+
+        fig.add_trace(go.Bar(x=[i], y=[asr], marker=dict(color=palette[c]), name=name_asr))
+
+        # cycle_df_asr_sorted = cycle_df_asr.sort_values(by='ohm')
+        #
+        # # Fit spline
+        # print(cycle_df_asr_sorted)
+        # x_fit = np.linspace(cycle_df_asr_sorted['ohm'].min(), cycle_df_asr_sorted['ohm'].max(), 100)
+        # spline = make_interp_spline(cycle_df_asr_sorted['ohm'], cycle_df_asr_sorted['ohm.1'])
+        # y_new = spline(x_fit)
+        #
+        # x_fit = x_fit * 1000 * 25
+        # y_new = y_new * -1000 * 25
+        #
+        # fig.add_trace(go.Scatter(x=x_fit, y=y_new, mode="lines", marker=dict(size=10, color=palette[c]),
+        #                          name=name_asr + ' spline'))
+
+        c += 1
+        if c > 10:
+            c = 0
+
+    fig.update_layout(
+        # TITLE
+        title='ASR (' + sample + ')',
+        title_font=dict(size=30, color='black'),
+        title_x=0.5,
+        legend_font = dict(size=16),
+        legend = dict(
+            x=1.2,
+            y=1,
+            xanchor='right',  # Set the x anchor to 'right'
+            yanchor='top',  # Set the y anchor to 'top'
+            bgcolor="white",
+            bordercolor="black",
+            borderwidth=1,
+    ),
+    plot_bgcolor = 'white',
+    )
+    fig.update_xaxes(title='real [mOhm*cm²]',
+                   title_font=dict(size=24, color='black'),
+                   tickfont=dict(size=20, color='black'),
+                   minor=dict(ticks="inside", ticklen=5, showgrid=False),
+                   gridcolor='lightgrey',
+                   griddash='dash',
+                   showline=True,
+                   zeroline=True,
+                   zerolinewidth=2,
+                   zerolinecolor='black',
+                   ticks='inside',
+                   ticklen=10,
+                   tickwidth=2,
+                   linewidth=2,
+                   linecolor='black',
+                   mirror=True,
+
+                   # range=[0, 650]
+
+                   )
+        # YAXIS
+    fig.update_yaxes(title='-imag. [mOhm*cm²]',
+                   title_font=dict(size=24, color='black'),
+                   tickfont=dict(size=20, color='black'),
+                   gridcolor='lightgrey',
+                   griddash='dash',
+                   minor=dict(ticks="inside", ticklen=5, showgrid=False),
+                   showline=True,
+                   zeroline=True,
+                   zerolinewidth=2,
+                   zerolinecolor='black',
+                   ticks='inside',
+                   ticklen=10,
+                   tickwidth=2,
+                   linewidth=2,
+                   linecolor='black',
+                   mirror=True,
+
+                   # range=[-20, 250]
+                   )
+
+    return fig
 
 def drawFigureEIS5a(sample):
 

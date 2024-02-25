@@ -2,7 +2,7 @@ import dash
 from dash import Dash, dcc, html, Input, Output, callback
 import plotly.graph_objs as go
 import dash_bootstrap_components as dbc
-from data import drawFigureTestbench, drawFigurePOLInc, drawFigurePOLDec, drawFigureCV, \
+from dataframes import drawFigureTestbench, drawFigureCV, \
     drawFigureEIS25a, drawFigureEIS50a, drawFigureEIS5a, drawFigureEIS75a, drawFigureEIS100a, drawFigurePOL
 import os
 

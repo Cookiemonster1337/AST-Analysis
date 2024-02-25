@@ -2,10 +2,10 @@
 import pandas as pd
 import os
 
+sample = '#001_ast#01_uncoated'
 
-
-dir_source = r'W:\Arbeitsgruppe\Abteilung NMT\Gruppe-Materialanalyse\BP Charakterisierung\in-situ\GTS\AST Study\ast2_coated_#01\gamry\eis'
-dir_target = r'C:\Users\j.kapp\PycharmProjects\in-situ-pemfc-GL\data\#004_ast#02_coated'
+dir_source = r'C:\Users\julia\PycharmProjects\AST-Analysis\rawdata' + '\\' + sample + '\\' + 'gamry\eis'
+dir_target = r'C:\Users\julia\PycharmProjects\AST-Analysis\data' + '\\' + sample
 
 csv_files = [f for f in os.listdir(dir_source)]
 
@@ -14,6 +14,7 @@ eis25a_dfs = {}
 eis50a_dfs = {}
 eis75a_dfs = {}
 eis100a_dfs = {}
+hfr_dfs = {}
 
 columns_of_interest = ['s', 'Hz', 'ohm', 'ohm.1', '°']
 
@@ -22,6 +23,7 @@ eis25a_counter = 1
 eis50a_counter = 1
 eis75a_counter = 1
 eis100a_counter = 1
+hfr_counter = 1
 
 for file in csv_files:
     df_file = pd.read_csv(os.path.join(dir_source, file), encoding='cp1252',
@@ -37,11 +39,19 @@ for file in csv_files:
     date = df_info.iloc[2, 2]
     time = df_info.iloc[3, 2]
 
+    len(df_file)
+
     df_file['amp'] = amp
     df_file['date'] = date
     df_file['time'] = time
 
     print(str(amp), str(freq_final))
+
+    # if len(df_file) < 40:
+    #     print('HFR-Data Files ' + str(hfr_counter))
+    #     df_file['#'] = hfr_counter
+    #     hfr_dfs[file] = df_file
+    #     hfr_counter += 1
 
     if amp == 0.25 and freq_final == 0.1:
         print('EIS-Data (5A) Files ' + str(eis5a_counter))
@@ -73,6 +83,11 @@ for file in csv_files:
         eis100a_dfs[file] = df_file
         eis100a_counter += 1
 
+
+try:
+    hfr_df = pd.concat(hfr_dfs.values(), ignore_index=True)
+except:
+    print('No HFR-Data')
 try:
     eis5a_df = pd.concat(eis5a_dfs.values(), ignore_index=True)
 except:
@@ -94,6 +109,10 @@ try:
 except:
     print('No EIS-Data for 100A Current')
 
+try:
+    hfr_df.to_csv(dir_target + '\hfr.csv', index=False)
+except:
+    pass
 try:
     eis5a_df.to_csv(dir_target + '\eis_5a.csv', index=False)
 except:
