@@ -1,14 +1,10 @@
-from dash import Dash, dcc, html, Input, Output, callback
 import plotly.graph_objs as go
-import dash_bootstrap_components as dbc
 from plotly.subplots import make_subplots
 import pandas as pd
 import plotly.express as px
-import os
-from scipy.interpolate import make_interp_spline
 import numpy as np
 
-# sample = '#004_ast#02_coated'
+palette = px.colors.qualitative.Bold
 
 def drawFigureTestbench(sample):
 
@@ -866,7 +862,7 @@ def drawFigurePOLInc():
     )
     return figure
 
-def drawFigureASR(sample):
+def drawFigureASRBar(sample):
 
     file_asr = r'data' + '\\' + sample + '\hfr.csv'
 
@@ -892,6 +888,7 @@ def drawFigureASR(sample):
         current_density = cycle_df_asr['amp'][0]
         date = cycle_df_asr['date'][0]
         time = cycle_df_asr['time'][0]
+        char = cycle_df_asr['char'][0]
 
 
         f_low = 1E+3
@@ -906,7 +903,7 @@ def drawFigureASR(sample):
         z_real_asr = cycle_df_asr['ohm'] * 1000 * 25
         z_imag_asr = cycle_df_asr['ohm.1'] * -1000 * 25
 
-        name_asr = str(date) + ' ' + str(time) + str(current_density) + ' [A/cm²]' + ' ASR ~' + str(round(asr,0)) +' [mOhm*cm²]'
+        name_asr = str(char) + ' ' + str(date) + ' ' + str(time) + str(current_density) + ' [A/cm²]' + ' ASR ~' + str(round(asr,0)) +' [mOhm*cm²]'
 
         fig.add_trace(go.Bar(x=[i], y=[asr], marker=dict(color=palette[c]), name=name_asr))
 
@@ -986,6 +983,423 @@ def drawFigureASR(sample):
                    # range=[-20, 250]
                    )
 
+    return fig
+
+def drawFigureASRNyquist(sample):
+
+    file_asr = r'data' + '\\' + sample + '\hfr.csv'
+
+    palette = px.colors.qualitative.Bold
+
+    # DATAFRAMES
+    try:
+        data_df_asr = pd.read_csv(file_asr, encoding='cp1252', low_memory=False)
+    except:
+        return
+
+    data_df_asr = data_df_asr.sort_values(by=['date', 'time', 'amp'], ascending=[True, True, False])
+
+    chars = sorted(data_df_asr['char'].unique())
+
+    color = 0
+    traces = []
+
+    for char in chars:
+        count = sorted(data_df_asr[data_df_asr['char'] == char]['#'].unique())
+        amp = []
+        asr = []
+        name_asr = str(char)
+
+        for i in count:
+            cycle_df_asr = data_df_asr[data_df_asr['#'] == i].reset_index(drop=True)
+
+            amp.append(cycle_df_asr['amp'][0])
+
+            f_low = 1E+3
+            f_high = 1E+4
+
+            cycle_df_asr = cycle_df_asr[(cycle_df_asr['Hz']> f_low) & (cycle_df_asr['Hz'] < f_high)]
+            cycle_df_asr = cycle_df_asr[cycle_df_asr['ohm.1'] < 0]
+
+            asr.append(cycle_df_asr[cycle_df_asr['ohm.1'] == min(cycle_df_asr['ohm.1'])]['ohm'].iloc[0] * 1000 * 25)
+            print(asr)
+
+        traces.append(
+            go.Scatter(x=amp, y=asr, mode="markers+lines", marker=dict(size=10, color=palette[color]),
+                       name=name_asr)
+        )
+
+        color += 1
+        if color > 10:
+            color = 0
+
+    fig_data = traces
+
+    fig = go.Figure(fig_data).update_layout(
+            # TITLE
+            title='ASR (' + sample + ')',
+            title_font=dict(size=30, color='black'),
+            title_x=0.5,
+            legend_font = dict(size=16),
+            legend = dict(
+                x=1.2,
+                y=1,
+                xanchor='right',  # Set the x anchor to 'right'
+                yanchor='top',  # Set the y anchor to 'top'
+                bgcolor="white",
+                bordercolor="black",
+                borderwidth=1,
+        ),
+
+        xaxis=dict(title='real [mOhm*cm²]',
+                       title_font=dict(size=24, color='black'),
+                       tickfont=dict(size=20, color='black'),
+                       minor=dict(ticks="inside", ticklen=5, showgrid=False),
+                       gridcolor='lightgrey',
+                       griddash='dash',
+                       showline=True,
+                       zeroline=True,
+                       zerolinewidth=2,
+                       zerolinecolor='black',
+                       ticks='inside',
+                       ticklen=10,
+                       tickwidth=2,
+                       linewidth=2,
+                       linecolor='black',
+                       mirror=True,
+
+                       # range=[0, 650]
+
+                       ),
+            # YAXIS
+        yaxis = dict(title='-imag. [mOhm*cm²]',
+                       title_font=dict(size=24, color='black'),
+                       tickfont=dict(size=20, color='black'),
+                       gridcolor='lightgrey',
+                       griddash='dash',
+                       minor=dict(ticks="inside", ticklen=5, showgrid=False),
+                       showline=True,
+                       zeroline=True,
+                       zerolinewidth=2,
+                       zerolinecolor='black',
+                       ticks='inside',
+                       ticklen=10,
+                       tickwidth=2,
+                       linewidth=2,
+                       linecolor='black',
+                       mirror=True,
+
+                       # range=[-20, 250]
+                       ),
+        plot_bgcolor = 'white',
+        )
+
+    return fig
+
+def drawFigureASRextrapolation(sample):
+
+    file_asr = r'data' + '\\' + sample + '\hfr.csv'
+
+    # DATAFRAMES
+    try:
+        data_df_asr = pd.read_csv(file_asr, encoding='cp1252', low_memory=False)
+    except:
+        return
+
+    data_df_asr = data_df_asr.sort_values(by=['date', 'time', 'amp'], ascending=[True, True, False])
+
+    count = sorted(data_df_asr['#'].unique())
+
+    c = 0
+    char = 1
+    j = 5
+
+    traces = []
+
+
+    for i in count:
+        cycle_df_asr = data_df_asr[data_df_asr['#'] == i].reset_index(drop=True)
+
+        amp = cycle_df_asr['amp'][0]
+        date = cycle_df_asr['date'][0]
+        time = cycle_df_asr['time'][0]
+
+        f_low = 1E+2
+        f_high = 1E+5
+
+        cycle_df_asr = cycle_df_asr[(cycle_df_asr['Hz']> f_low) & (cycle_df_asr['Hz'] < f_high)]
+        # cycle_df_asr = cycle_df_asr[cycle_df_asr['ohm.1'] > -50]
+
+        # Smallest value below zero in each column
+        imag_sub = cycle_df_asr[cycle_df_asr['ohm.1'] < 0]['ohm.1'].min()
+        real_sub = cycle_df_asr[cycle_df_asr['ohm.1'] == imag_sub]['ohm'].min()
+
+        # Smallest value above zero in each column
+        imag_up = cycle_df_asr[cycle_df_asr['ohm.1'] > 0]['ohm.1'].min()
+        real_up = cycle_df_asr[cycle_df_asr['ohm.1'] == imag_up]['ohm'].min()
+
+        x = [real_sub, real_up]
+        y = [imag_sub, imag_up]
+        print(x,y)
+
+
+        m = (y[1] - y[0]) / (x[1] - x[0])  # slope formula: (y2 - y1) / (x2 - x1)
+        b = y[0] - m * x[0]  # y-intercept formula: y1 - m * x1
+        x_line = [x[0], x[1]]
+        y_line = [m * xi + b for xi in x_line]
+
+        # x_fit = np.linspace(x[0], x[1], 100)
+        # spline = make_interp_spline(x, y)
+        # y_new = spline(x_fit)
+
+        # asr = cycle_df_asr[cycle_df_asr['ohm.1'] == min(cycle_df_asr['ohm.1'])]['ohm'].iloc[0] * 1000 * 25
+        # print(asr)
+        #
+
+        asr = round((-b / m) * 1000 * 25, 2)
+
+        name_asr = str(asr)
+        #            # str(current_density) + ' [A/cm²]' + ' ASR ~' + str(round(asr,0)) +' [mOhm*cm²]'
+        #
+        # # fig.add_trace(go.Bar(x=[i], y=[asr], marker=dict(color=palette[c]), name=name_asr))
+        #
+        # cycle_df_asr = cycle_df_asr.drop_duplicates(subset='ohm', keep=False)
+        # cycle_df_asr_sorted = cycle_df_asr.sort_values(by='ohm')
+        #
+        # x = cycle_df_asr_sorted['ohm'] * 1000 * 25
+        # y = cycle_df_asr_sorted['ohm.1'] * 1000 * 25
+        #
+        # # Fit spline
+        # print(cycle_df_asr_sorted)
+        # x_fit = np.linspace(x.min()-100, x.max(), 100)
+        # spline = make_interp_spline(x, y)
+        # y_new = spline(x_fit)
+
+        traces.append(go.Scatter(x=x, y=y, mode="markers", marker=dict(size=10, color=palette[c]),
+                                 name=name_asr))
+
+        traces.append(go.Scatter(x=x_line, y=y_line, mode="lines", marker=dict(size=10, color=palette[c])))
+
+
+
+        c += 1
+        if c > 10:
+            c = 0
+
+    fig = go.Figure(traces).update_layout(
+        # TITLE
+        title='ASR (' + sample + ')',
+        title_font=dict(size=30, color='black'),
+        title_x=0.5,
+        legend_font = dict(size=16),
+        legend = dict(
+            x=1.2,
+            y=1,
+            xanchor='right',  # Set the x anchor to 'right'
+            yanchor='top',  # Set the y anchor to 'top'
+            bgcolor="white",
+            bordercolor="black",
+            borderwidth=1,
+        ),
+        xaxis = dict(title='real [mOhm*cm²]',
+                       title_font=dict(size=24, color='black'),
+                       tickfont=dict(size=20, color='black'),
+                       minor=dict(ticks="inside", ticklen=5, showgrid=False),
+                       gridcolor='lightgrey',
+                       griddash='dash',
+                       showline=True,
+                       zeroline=True,
+                       zerolinewidth=2,
+                       zerolinecolor='black',
+                       ticks='inside',
+                       ticklen=10,
+                       tickwidth=2,
+                       linewidth=2,
+                       linecolor='black',
+                       mirror=True,
+                       ),
+        yaxis = dict(title='-imag. [mOhm*cm²]',
+                       title_font=dict(size=24, color='black'),
+                       tickfont=dict(size=20, color='black'),
+                       gridcolor='lightgrey',
+                       griddash='dash',
+                       minor=dict(ticks="inside", ticklen=5, showgrid=False),
+                       showline=True,
+                       zeroline=True,
+                       zerolinewidth=2,
+                       zerolinecolor='black',
+                       ticks='inside',
+                       ticklen=10,
+                       tickwidth=2,
+                       linewidth=2,
+                       linecolor='black',
+                       mirror=True,
+
+                       # range=[-20, 250]
+                       ),
+        plot_bgcolor = 'white',
+        )
+    return fig
+
+def drawFigureCTRextrapolation(sample):
+
+    file_asr = r'data' + '\\' + sample + '\hfr.csv'
+
+    # DATAFRAMES
+    try:
+        data_df_asr = pd.read_csv(file_asr, encoding='cp1252', low_memory=False)
+    except:
+        return
+
+    data_df_asr = data_df_asr.sort_values(by=['date', 'time', 'amp'], ascending=[True, True, False])
+
+    count = sorted(data_df_asr['#'].unique())
+
+    c = 0
+    char = 1
+    j = 5
+
+    traces = []
+
+
+    for i in count:
+        cycle_df= data_df_asr[data_df_asr['#'] == i].reset_index(drop=True)
+
+        z_real = cycle_df['ohm']
+        z_imag = cycle_df['ohm.1']
+
+        amp = cycle_df['amp'][0]
+        date = cycle_df['date'][0]
+        time = cycle_df['time'][0]
+
+        f_low = 1E+2
+        f_high = 1E+5
+
+        cycle_df_asr = cycle_df[(cycle_df['Hz']> f_low) & (cycle_df['Hz'] < f_high)]
+        # cycle_df_asr = cycle_df_asr[cycle_df_asr['ohm.1'] > -50]
+
+        # Smallest value below zero in each column
+        imag_sub = cycle_df_asr[cycle_df_asr['ohm.1'] < 0]['ohm.1'].min()
+        real_sub = cycle_df_asr[cycle_df_asr['ohm.1'] == imag_sub]['ohm'].min()
+
+        # Smallest value above zero in each column
+        imag_up = cycle_df_asr[cycle_df_asr['ohm.1'] > 0]['ohm.1'].min()
+        real_up = cycle_df_asr[cycle_df_asr['ohm.1'] == imag_up]['ohm'].min()
+
+
+
+        x = [real_sub, real_up]
+        y = [imag_sub, imag_up]
+        print(x,y)
+
+
+        m = (y[1] - y[0]) / (x[1] - x[0])  # slope formula: (y2 - y1) / (x2 - x1)
+        b = y[0] - m * x[0]  # y-intercept formula: y1 - m * x1
+        x_line = [x[0], x[1]]
+        y_line = [m * xi + b for xi in x_line]
+
+        asr = round((-b / m) * 1000 * 25, 2)
+
+        name_asr = str(asr)
+
+        # traces.append(go.Scatter(x=x, y=y, mode="markers", marker=dict(size=10, color=palette[c]),
+        #                          name=name_asr))
+
+        traces.append(go.Scatter(x=x_line, y=y_line, mode="lines", marker=dict(size=10, color=palette[c]),
+                                 name=name_asr))
+
+        f_low = 1E-1
+        f_high = 1E+2
+
+
+        cycle_df_ctr = cycle_df[(cycle_df['Hz'] > f_low) & (cycle_df['Hz'] < f_high)]
+
+        # Smallest value below zero in each column
+        imag_sub = cycle_df_ctr[cycle_df_ctr['ohm.1'] < 0]['ohm.1'].min()
+        real_sub = cycle_df_ctr[cycle_df_ctr['ohm.1'] == imag_sub]['ohm'].min()
+
+        # Smallest value above zero in each column
+        imag_up = cycle_df_ctr[cycle_df_ctr['ohm.1'] > 0]['ohm.1'].min()
+        real_up = cycle_df_ctr[cycle_df_ctr['ohm.1'] == imag_up]['ohm'].min()
+
+        x = [real_sub, real_up]
+        y = [imag_sub, imag_up]
+        print(x, y)
+
+        m = (y[1] - y[0]) / (x[1] - x[0])  # slope formula: (y2 - y1) / (x2 - x1)
+        b = y[0] - m * x[0]  # y-intercept formula: y1 - m * x1
+        x_line = [x[0], x[1]]
+        y_line = [m * xi + b for xi in x_line]
+
+        ctr = round((-b / m) * 1000 * 25, 2)
+        if np.isnan(x[-1]):
+            ctr = round(x[0] * 1000 * 25, 2)
+
+        name_ctr = str(ctr)
+
+        traces.append(go.Scatter(x=z_real, y=z_imag, mode="markers", marker=dict(size=10, color=palette[c]),
+                                 name=name_ctr))
+
+        traces.append(go.Scatter(x=x_line, y=y_line, mode="lines", marker=dict(size=10, color=palette[c]),
+                                 name=name_ctr))
+
+        c += 1
+        if c > 10:
+            c = 0
+
+    fig = go.Figure(traces).update_layout(
+        # TITLE
+        title='ASR (' + sample + ')',
+        title_font=dict(size=30, color='black'),
+        title_x=0.5,
+        legend_font = dict(size=16),
+        legend = dict(
+            x=1.2,
+            y=1,
+            xanchor='right',  # Set the x anchor to 'right'
+            yanchor='top',  # Set the y anchor to 'top'
+            bgcolor="white",
+            bordercolor="black",
+            borderwidth=1,
+        ),
+        xaxis = dict(title='real [mOhm*cm²]',
+                       title_font=dict(size=24, color='black'),
+                       tickfont=dict(size=20, color='black'),
+                       minor=dict(ticks="inside", ticklen=5, showgrid=False),
+                       gridcolor='lightgrey',
+                       griddash='dash',
+                       showline=True,
+                       zeroline=True,
+                       zerolinewidth=2,
+                       zerolinecolor='black',
+                       ticks='inside',
+                       ticklen=10,
+                       tickwidth=2,
+                       linewidth=2,
+                       linecolor='black',
+                       mirror=True,
+                       ),
+        yaxis = dict(title='-imag. [mOhm*cm²]',
+                       title_font=dict(size=24, color='black'),
+                       tickfont=dict(size=20, color='black'),
+                       gridcolor='lightgrey',
+                       griddash='dash',
+                       minor=dict(ticks="inside", ticklen=5, showgrid=False),
+                       showline=True,
+                       zeroline=True,
+                       zerolinewidth=2,
+                       zerolinecolor='black',
+                       ticks='inside',
+                       ticklen=10,
+                       tickwidth=2,
+                       linewidth=2,
+                       linecolor='black',
+                       mirror=True,
+
+                       # range=[-20, 250]
+                       ),
+        plot_bgcolor = 'white',
+        )
     return fig
 
 def drawFigureEIS5a(sample):
