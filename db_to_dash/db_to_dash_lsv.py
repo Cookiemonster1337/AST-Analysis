@@ -11,38 +11,46 @@ test_list_cv = [t for t in test_list if t.endswith('CV')]
 
 palette = px.colors.qualitative.Bold
 
-def plot_cv(test):
+def plot_lsv(test):
 
     collection = db[test]
-    query = {'mode':'cv'}
-    projection = {'#':1, 'A':1, 'v_vs_ref':1, 'datetime':1, 'source_file':1}
+    query = {'mode':{'$in': ['lsv_p1','lsv_p2']}}
+    projection = {'#':1, 's':1, 'A':1, 'v_vs_ref':1, 'datetime':1, 'source_file':1}
 
     cursor = collection.find(query, projection)
 
     plot_data = list(cursor)
     cv_df = pd.json_normalize(plot_data)
 
-
-
     measurements = cv_df['datetime'].unique()
 
     traces = []
     c = 0
 
-    for date in measurements:
+    i = 1
+    for date in measurements[::2]:
 
-        cycle_df = cv_df[cv_df['datetime'] == date]
+        try:
+            cycle_df = cv_df[(cv_df['datetime'] == date) & (cv_df['datetime'] == measurements[i+1])]
+            i +=1
+        except IndexError:
+            continue
+
         cycle_df.sort_values(by='#', inplace=True)
-        cycle_df = cycle_df[-2000:]
 
         name = str(date)
 
+        time = cycle_df['s']
         u = cycle_df['v_vs_ref'] * 1000
         j = cycle_df['A'] * 1000 / 25
 
         traces.append(
-            go.Scatter(x=u, y=j, mode="lines", marker=dict(size=10, color=palette[c]), line=dict(color=palette[c]),
-                       name=name))
+            go.Scatter(x=time, y=j, mode="lines", marker=dict(size=10, color=palette[c]), line=dict(color=palette[c]),
+                       name=name, yaxis='y2'))
+
+        traces.append(
+            go.Scatter(x=time, y=u, mode="lines", marker=dict(size=10, color=palette[c]), line=dict(color=palette[c]),
+                       name=name, yaxis='y1'))
 
         if c > 5:
             c = 0
@@ -51,14 +59,16 @@ def plot_cv(test):
 
     fig_data = traces
 
-    figure = go.Figure(fig_data).update_layout(
-        # TITLE
-        title='CV-Analysis (@100 mV/s)',
+    lsv_fig = go.Figure(fig_data).update_layout(
+
+        title='LSV Analysis (' + str(test) + ')',
         title_font=dict(size=30, color='black'),
         title_x=0.5,
 
-        # XAXIS
-        xaxis=dict(title='voltage [mV]',
+        hoverlabel=dict(bgcolor='white', font_size=14),
+        hovermode='x unified',
+
+        xaxis=dict(title='time [s]',
                    title_font=dict(size=24, color='black'),
                    tickfont=dict(size=20, color='black'),
                    minor=dict(ticks="inside", ticklen=5, showgrid=False),
@@ -77,13 +87,9 @@ def plot_cv(test):
                    linecolor='black',
 
                    mirror=True,
-
-                   range=[0, -1000],
-                   # autorange='reversed',
                    ),
 
-        # YAXIS
-        yaxis=dict(title='current [mA/cm2]',
+        yaxis=dict(title='voltage [mV]',
                    title_font=dict(size=24, color='black'),
                    tickfont=dict(size=20, color='black'),
                    gridcolor='lightgrey',
@@ -92,7 +98,7 @@ def plot_cv(test):
                    showline=True,
                    zeroline=True,
                    zerolinewidth=2,
-                   zerolinecolor='darkgrey',
+                   zerolinecolor='black',
                    ticks='inside',
                    ticklen=10,
                    tickwidth=2,
@@ -101,12 +107,25 @@ def plot_cv(test):
                    linecolor='black',
 
                    mirror=True,
-                   autorange='reversed'
                    ),
+
+        yaxis2=dict(title='current [mA/cm2]',
+                    overlaying='y',
+                    side='right',
+                    title_font=dict(size=24, color='black'),
+                    tickfont=dict(size=20, color='black'),
+                    minor=dict(ticks="inside", ticklen=5, showgrid=False),
+                    ticks='inside',
+                    ticklen=10,
+                    tickwidth=2,
+
+                    linewidth=2,
+                    linecolor='black',
+                    ),
 
         legend_font=dict(size=16),
         legend=dict(
-            x=1.2,
+            x=1.3,
             y=1,
             xanchor='right',  # Set the x anchor to 'right'
             yanchor='top',  # Set the y anchor to 'top'
@@ -117,4 +136,4 @@ def plot_cv(test):
         plot_bgcolor='white',
     )
 
-    return figure
+    return lsv_fig
