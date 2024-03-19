@@ -3,68 +3,98 @@ from plotly.subplots import make_subplots
 import pandas as pd
 import plotly.express as px
 import numpy as np
+from scipy.interpolate import interp1d
+from pymongo import MongoClient
+
 
 palette = px.colors.qualitative.Bold
+client = MongoClient('mongodb://jkp:phd2024@172.16.134.8:27017/')
+db = client.dep6_coating_char
 
-def drawFigureTestbench(sample):
+collection = db['gts-tb']
 
-    file = r'data' + '\\' + sample + '\summary_60s.csv'
+cursor = collection.distinct('test_id')
+test_list = list(cursor)
 
+def drawFigureTestbench(query_spec):
     palette = px.colors.qualitative.Alphabet
 
-    test_data_df = pd.read_csv(file, encoding='cp1252', low_memory=False)
+    collection = db['gts-tb']
+    query = {'test_id': query_spec,}
+    projection = {'Time Stamp': 1, 'current': 1, 'voltage': 1, 'temp_cathode_endplate': 1, 'File Mark': 1,
+                  'total_anode_stack_flow': 1, 'total_cathode_stack_flow': 1,
+                  'temp_anode_inlet': 1, 'temp_cathode_inlet': 1}
 
-    # test_data_df = test_data_df.sort_values(by='Time Stamp', ascending=True)
+    # file = r'data' + '\\' + sample + '\summary_60s.csv'
 
-    test_data_df['duration/h'] = test_data_df.index * (1 / 60)
-    time = test_data_df['duration/h']
+    cursor = collection.find(query, projection)
+    data_list = list(cursor)
+    df_export = pd.json_normalize(data_list)
 
-    # read in values of interest for plotting from dataframe
-    # time = test_data_df['Time Stamp']
-    voltage = test_data_df['voltage']
-    current = test_data_df['current']
+    # test_data_df = pd.read_csv(file, encoding='cp1252', low_memory=False)
+    #
+    # # test_data_df = test_data_df.sort_values(by='Time Stamp', ascending=True)
+    #
+    # test_data_df['duration/h'] = test_data_df.index * (1 / 60)
+    # time = test_data_df['duration/h']
+    #
+    # # read in values of interest for plotting from dataframe
+    # # time = test_data_df['Time Stamp']
+    # voltage = test_data_df['voltage']
+    # current = test_data_df['current']
+    #
+    # compression = test_data_df['pressure_stack_compression']
+    #
+    # # CELL
+    # temp_cell_an = test_data_df['temp_anode_endplate']
+    # temp_cell_cat = test_data_df['temp_cathode_endplate']
+    #
+    # # COOLANT
+    # temp_coolant_inlet = test_data_df['temp_coolant_inlet']
+    # temp_coolant_outlet = test_data_df['temp_coolant_outlet']
+    # temp_coolant_diff = test_data_df['temp_coolant_in_out_diff']
+    # pressure_coolant_inlet = test_data_df['pressure_coolant_inlet']
+    # pressure_coolant_outlet = test_data_df['pressure_coolant_outlet']
+    # pressure_coolant_diff = test_data_df['pressure_coolant_in_out_diff']
+    #
+    # # ANODE
+    # temp_an_inlet = test_data_df['temp_anode_inlet']
+    # temp_an_outlet = test_data_df['temp_anode_outlet']
+    # temp_an_diff = test_data_df['temp_anode_in_out_diff']
+    # flow_an = test_data_df['total_anode_stack_flow']
+    # pressure_an_inlet = test_data_df['pressure_anode_inlet']
+    # pressure_an_outlet = test_data_df['pressure_anode_outlet']
+    # pressure_an_diff = test_data_df['pressure_anode_in_out_diff']
+    #
+    # # CATHODE
+    # temp_cat_inlet = test_data_df['temp_cathode_inlet']
+    # temp_cat_outlet = test_data_df['temp_cathode_outlet']
+    # temp_cat_diff = test_data_df['temp_cathode_in_out_diff']
+    # flow_cat = test_data_df['total_cathode_stack_flow']
+    # pressure_cat_inlet = test_data_df['pressure_cathode_inlet']
+    # pressure_cat_outlet = test_data_df['pressure_cathode_outlet']
+    # pressure_cat_diff = test_data_df['pressure_cathode_in_out_diff']
+    #
+    # # VARIABLES
+    # var01 = test_data_df['variable_01']
+    # var02 = test_data_df['variable_02']
+    # var03 = test_data_df['variable_03']
+    # var04 = test_data_df['variable_04']
+    # var05 = test_data_df['variable_05']
+    # var06 = test_data_df['variable_06']
+    # var07 = test_data_df['variable_07']
+    # var08 = test_data_df['variable_08']
 
-    compression = test_data_df['pressure_stack_compression']
+    df_export['duration/h'] = df_export.index * 1 / 3600
+    duration = df_export['duration/h']
 
-    # CELL
-    temp_cell_an = test_data_df['temp_anode_endplate']
-    temp_cell_cat = test_data_df['temp_cathode_endplate']
-
-    # COOLANT
-    temp_coolant_inlet = test_data_df['temp_coolant_inlet']
-    temp_coolant_outlet = test_data_df['temp_coolant_outlet']
-    temp_coolant_diff = test_data_df['temp_coolant_in_out_diff']
-    pressure_coolant_inlet = test_data_df['pressure_coolant_inlet']
-    pressure_coolant_outlet = test_data_df['pressure_coolant_outlet']
-    pressure_coolant_diff = test_data_df['pressure_coolant_in_out_diff']
-
-    # ANODE
-    temp_an_inlet = test_data_df['temp_anode_inlet']
-    temp_an_outlet = test_data_df['temp_anode_outlet']
-    temp_an_diff = test_data_df['temp_anode_in_out_diff']
-    flow_an = test_data_df['total_anode_stack_flow']
-    pressure_an_inlet = test_data_df['pressure_anode_inlet']
-    pressure_an_outlet = test_data_df['pressure_anode_outlet']
-    pressure_an_diff = test_data_df['pressure_anode_in_out_diff']
-
-    # CATHODE
-    temp_cat_inlet = test_data_df['temp_cathode_inlet']
-    temp_cat_outlet = test_data_df['temp_cathode_outlet']
-    temp_cat_diff = test_data_df['temp_cathode_in_out_diff']
-    flow_cat = test_data_df['total_cathode_stack_flow']
-    pressure_cat_inlet = test_data_df['pressure_cathode_inlet']
-    pressure_cat_outlet = test_data_df['pressure_cathode_outlet']
-    pressure_cat_diff = test_data_df['pressure_cathode_in_out_diff']
-
-    # VARIABLES
-    var01 = test_data_df['variable_01']
-    var02 = test_data_df['variable_02']
-    var03 = test_data_df['variable_03']
-    var04 = test_data_df['variable_04']
-    var05 = test_data_df['variable_05']
-    var06 = test_data_df['variable_06']
-    var07 = test_data_df['variable_07']
-    var08 = test_data_df['variable_08']
+    current = df_export['current']
+    voltage = df_export['voltage']
+    temp_cell_cat = df_export['temp_cathode_endplate']
+    temp_an_inlet = df_export['temp_anode_inlet']
+    temp_cat_inlet = df_export['temp_cathode_inlet']
+    flow_an_inlet = df_export['total_anode_stack_flow']
+    flow_cat_inlet = df_export['total_cathode_stack_flow']
 
     # create traces from values for plot
     fig_overview = make_subplots(specs=[[{"secondary_y": True}]])
@@ -72,286 +102,337 @@ def drawFigureTestbench(sample):
     traces_y1 = []
     traces_y2 = []
 
-    # GENERAL
     traces_y1.append(
-        go.Scatter(x=time, y=voltage, mode="lines",
+        go.Scatter(x=duration, y=voltage, mode="lines",
                    name='Cell Voltage [Y1]',
-                   line=dict(color=palette[0]),
-                   yaxis='y1',
-                   visible=True
-                   )
-
-    )
+                   line=dict(color='black'), yaxis='y1'))
 
     traces_y2.append(
-        go.Scatter(x=time, y=current, mode="lines",
+        go.Scatter(x=duration, y=current, mode="lines",
                    name='Current [Y2]',
+                   line=dict(color='red'), yaxis='y2'))
+
+    traces_y2.append(
+        go.Scatter(x=duration, y=temp_cell_cat, mode="lines",
+                   name='Temp. Cell (Cathode) [Y2]',
+                   line=dict(color='blue'), yaxis='y2'))
+
+    traces_y2.append(
+        go.Scatter(x=duration, y=temp_an_inlet, mode="lines",
+                   name='Temp Anode Inlet [Y2]',
                    line=dict(color=palette[1]),
                    yaxis='y2',
-                   visible=True
-                   )
-    )
-
-    # CELL
-    traces_y2.append(
-        go.Scatter(x=time, y=temp_cell_cat, mode="lines",
-                   name='Cell Temperature (Cathode) [Y2]',
-                   line=dict(color=palette[16]),
-                   yaxis='y2',
-                   visible=True
-                   )
-    )
-
-    traces_y2.append(
-        go.Scatter(x=time, y=temp_cell_an, mode="lines",
-                   name='Cell Temperature (Anode) [Y2]',
-                   line=dict(color=palette[17]), yaxis='y2',
-                   visible='legendonly'
-                   )
-    )
-
-    # COOLANT
-    traces_y1.append(
-        go.Scatter(x=time, y=temp_coolant_inlet,
-                   mode="lines",
-                   name='Temperature Coolant Inlet [Y2]',
-                   line=dict(color=palette[16]),
-                   yaxis='y2',
-                   visible='legendonly'
-                   )
-    )
-
-    traces_y1.append(
-        go.Scatter(x=time, y=temp_coolant_outlet,
-                   mode="lines",
-                   name='Temperature Coolant Outlet [Y2]',
-                   line=dict(color=palette[17]),
-                   yaxis='y2',
-                   visible='legendonly'
-                   )
-    )
-
-    traces_y1.append(
-        go.Scatter(x=time, y=temp_coolant_diff,
-                   mode="lines",
-                   name='Temperature Coolant Diff [Y1]',
-                   line=dict(color=palette[18]),
-                   yaxis='y1',
-                   visible='legendonly'
-                   )
-    )
-
-    traces_y1.append(
-        go.Scatter(x=time, y=pressure_coolant_inlet,
-                   mode="lines",
-                   name='Pressure Coolant Inlet [Y2]',
-                   line=dict(color=palette[19]),
-                   yaxis='y2',
-                   visible='legendonly')
-    )
-
-    traces_y1.append(
-        go.Scatter(x=time, y=pressure_coolant_outlet,
-                   mode="lines",
-                   name='Pressure Coolant Outlet [Y2]',
-                   line=dict(color=palette[20]),
-                   yaxis='y2',
-                   visible='legendonly'
-                   )
-    )
-
-    traces_y1.append(
-        go.Scatter(x=time, y=pressure_coolant_diff,
-                   mode="lines",
-                   name='Pressure Coolant Diff [Y1]',
-                   line=dict(color=palette[21]),
-                   yaxis='y1',
-                   visible='legendonly'
-                   )
-    )
-
-    # ANODE
-    traces_y1.append(
-        go.Scatter(x=time, y=flow_an, mode="lines",
-                   name='Flowrate Anode [Y1]',
-                   line=dict(color=palette[2]),
-                   yaxis='y1',
-                   visible='legendonly'
-                   )
-    )
-
-    traces_y1.append(
-        go.Scatter(x=time, y=temp_an_inlet, mode="lines",
-                   name='Temp Anode Inlet [Y2]',
-                   line=dict(color=palette[3]),
-                   yaxis='y2',
-                   visible='legendonly'
-                   )
-    )
-
-    traces_y1.append(
-        go.Scatter(x=time, y=temp_an_outlet, mode="lines",
-                   name='Temp Anode Outlet [Y2]',
-                   line=dict(color=palette[4]),
-                   yaxis='y2',
-                   visible='legendonly'
-                   )
-    )
-
-    traces_y1.append(
-        go.Scatter(x=time, y=temp_an_diff, mode="lines",
-                   name='Temp Anode Diff. [Y2]',
-                   line=dict(color=palette[5]),
-                   yaxis='y2',
                    visible='legendonly'
                    )
     )
 
     traces_y2.append(
-        go.Scatter(x=time, y=pressure_an_inlet, mode="lines",
-                   name='Pressure Anode Inlet [Y2]',
-                   line=dict(color=palette[6]),
-                   yaxis='y2',
-                   visible='legendonly'
-                   )
-    )
-
-    traces_y2.append(
-        go.Scatter(x=time, y=pressure_an_outlet, mode="lines",
-                   name='Pressure Anode Outlet [Y2]',
-                   line=dict(color=palette[7]),
-                   yaxis='y2',
-                   visible='legendonly'
-                   )
-    )
-
-    traces_y2.append(
-        go.Scatter(x=time, y=pressure_an_diff, mode="lines",
-                   name='Pressure Anode Diff. [Y1]',
-                   line=dict(color=palette[8]),
-                   yaxis='y1',
-                   visible='legendonly'
-                   )
-    )
-
-    # CATHODE
-    traces_y1.append(
-        go.Scatter(x=time, y=flow_cat, mode="lines",
-                   name='Flowrate Cathode [Y1]',
-                   line=dict(color=palette[9]),
-                   yaxis='y1',
-                   visible='legendonly'
-                   )
-    )
-
-    traces_y1.append(
-        go.Scatter(x=time, y=temp_cat_inlet, mode="lines",
+        go.Scatter(x=duration, y=temp_cat_inlet, mode="lines",
                    name='Temp Cathode Inlet [Y2]',
-                   line=dict(color=palette[10]),
+                   line=dict(color=palette[2]),
                    yaxis='y2',
                    visible='legendonly'
                    )
     )
 
     traces_y1.append(
-        go.Scatter(x=time, y=temp_cat_outlet, mode="lines",
-                   name='Temp Cathode Outlet [Y2]',
-                   line=dict(color=palette[11]),
-                   yaxis='y2',
-                   visible='legendonly'
-                   )
-    )
-
-    traces_y1.append(
-        go.Scatter(x=time, y=temp_cat_diff, mode="lines",
-                   name='Temp Cathode Diff. [Y2]',
-                   line=dict(color=palette[12]),
-                   yaxis='y2',
-                   visible='legendonly'
-                   )
-    )
-
-    traces_y2.append(
-        go.Scatter(x=time, y=pressure_cat_inlet, mode="lines",
-                   name='Pressure Cathode Inlet [Y2]',
-                   line=dict(color=palette[13]),
-                   yaxis='y2',
-                   visible='legendonly'
-                   )
-    )
-
-    traces_y2.append(
-        go.Scatter(x=time, y=pressure_cat_outlet, mode="lines",
-                   name='Pressure Cathode Outlet [Y2]',
-                   line=dict(color=palette[14]),
-                   yaxis='y2',
-                   visible='legendonly'
-                   )
-    )
-
-    traces_y2.append(
-        go.Scatter(x=time, y=pressure_cat_diff, mode="lines",
-                   name='Pressure Cathode Diff. [Y1]',
-                   line=dict(color=palette[15]),
+        go.Scatter(x=duration, y=flow_an_inlet, mode="lines",
+                   name='Flow Anode Inlet [Y2]',
+                   line=dict(color=palette[3]),
                    yaxis='y1',
                    visible='legendonly'
                    )
     )
 
-    # VARIABLES
-    traces_y2.append(
-        go.Scatter(x=time, y=var01, mode="lines",
-                   name='Load Cycle Count [Y2]',
-                   line=dict(color=palette[15]),
-                   yaxis='y2',
+    traces_y1.append(
+        go.Scatter(x=duration, y=flow_cat_inlet, mode="lines",
+                   name='Flow Cathode Inlet [Y2]',
+                   line=dict(color=palette[4]),
+                   yaxis='y1',
                    visible='legendonly'
                    )
     )
 
-    traces_y2.append(
-        go.Scatter(x=time, y=var02, mode="lines",
-                   name='AST Cycle Count Pt.1 [Y2]',
-                   line=dict(color=palette[15]),
-                   yaxis='y2',
-                   visible='legendonly'
-                   )
-    )
-
-    traces_y2.append(
-        go.Scatter(x=time, y=var03, mode="lines",
-                   name='CHAR Cycle Count Pt.1 [Y2]',
-                   line=dict(color=palette[15]),
-                   yaxis='y2',
-                   visible='legendonly'
-                   )
-    )
-
-    traces_y2.append(
-        go.Scatter(x=time, y=var04, mode="lines",
-                   name='AST Cycle Count Pt.2 [Y2]',
-                   line=dict(color=palette[15]),
-                   yaxis='y2',
-                   visible='legendonly'
-                   )
-    )
-
-    traces_y2.append(
-        go.Scatter(x=time, y=var08, mode="lines",
-                   name='CHAR Cycle Count Pt.2 [Y2]',
-                   line=dict(color=palette[15]),
-                   yaxis='y2',
-                   visible='legendonly'
-                   )
-    )
+    # GENERAL
+    # traces_y1.append(
+    #     go.Scatter(x=time, y=voltage, mode="lines",
+    #                name='Cell Voltage [Y1]',
+    #                line=dict(color=palette[0]),
+    #                yaxis='y1',
+    #                visible=True
+    #                )
+    #
+    # )
+    #
+    # traces_y2.append(
+    #     go.Scatter(x=time, y=current, mode="lines",
+    #                name='Current [Y2]',
+    #                line=dict(color=palette[1]),
+    #                yaxis='y2',
+    #                visible=True
+    #                )
+    # )
+    #
+    # # CELL
+    # traces_y2.append(
+    #     go.Scatter(x=time, y=temp_cell_cat, mode="lines",
+    #                name='Cell Temperature (Cathode) [Y2]',
+    #                line=dict(color=palette[16]),
+    #                yaxis='y2',
+    #                visible=True
+    #                )
+    # )
+    #
+    # traces_y2.append(
+    #     go.Scatter(x=time, y=temp_cell_an, mode="lines",
+    #                name='Cell Temperature (Anode) [Y2]',
+    #                line=dict(color=palette[17]), yaxis='y2',
+    #                visible='legendonly'
+    #                )
+    # )
+    #
+    # # COOLANT
+    # traces_y1.append(
+    #     go.Scatter(x=time, y=temp_coolant_inlet,
+    #                mode="lines",
+    #                name='Temperature Coolant Inlet [Y2]',
+    #                line=dict(color=palette[16]),
+    #                yaxis='y2',
+    #                visible='legendonly'
+    #                )
+    # )
+    #
+    # traces_y1.append(
+    #     go.Scatter(x=time, y=temp_coolant_outlet,
+    #                mode="lines",
+    #                name='Temperature Coolant Outlet [Y2]',
+    #                line=dict(color=palette[17]),
+    #                yaxis='y2',
+    #                visible='legendonly'
+    #                )
+    # )
+    #
+    # traces_y1.append(
+    #     go.Scatter(x=time, y=temp_coolant_diff,
+    #                mode="lines",
+    #                name='Temperature Coolant Diff [Y1]',
+    #                line=dict(color=palette[18]),
+    #                yaxis='y1',
+    #                visible='legendonly'
+    #                )
+    # )
+    #
+    # traces_y1.append(
+    #     go.Scatter(x=time, y=pressure_coolant_inlet,
+    #                mode="lines",
+    #                name='Pressure Coolant Inlet [Y2]',
+    #                line=dict(color=palette[19]),
+    #                yaxis='y2',
+    #                visible='legendonly')
+    # )
+    #
+    # traces_y1.append(
+    #     go.Scatter(x=time, y=pressure_coolant_outlet,
+    #                mode="lines",
+    #                name='Pressure Coolant Outlet [Y2]',
+    #                line=dict(color=palette[20]),
+    #                yaxis='y2',
+    #                visible='legendonly'
+    #                )
+    # )
+    #
+    # traces_y1.append(
+    #     go.Scatter(x=time, y=pressure_coolant_diff,
+    #                mode="lines",
+    #                name='Pressure Coolant Diff [Y1]',
+    #                line=dict(color=palette[21]),
+    #                yaxis='y1',
+    #                visible='legendonly'
+    #                )
+    # )
+    #
+    # # ANODE
+    # traces_y1.append(
+    #     go.Scatter(x=time, y=flow_an, mode="lines",
+    #                name='Flowrate Anode [Y1]',
+    #                line=dict(color=palette[2]),
+    #                yaxis='y1',
+    #                visible='legendonly'
+    #                )
+    # )
+    #
+    # traces_y1.append(
+    #     go.Scatter(x=time, y=temp_an_inlet, mode="lines",
+    #                name='Temp Anode Inlet [Y2]',
+    #                line=dict(color=palette[3]),
+    #                yaxis='y2',
+    #                visible='legendonly'
+    #                )
+    # )
+    #
+    # traces_y1.append(
+    #     go.Scatter(x=time, y=temp_an_outlet, mode="lines",
+    #                name='Temp Anode Outlet [Y2]',
+    #                line=dict(color=palette[4]),
+    #                yaxis='y2',
+    #                visible='legendonly'
+    #                )
+    # )
+    #
+    # traces_y1.append(
+    #     go.Scatter(x=time, y=temp_an_diff, mode="lines",
+    #                name='Temp Anode Diff. [Y2]',
+    #                line=dict(color=palette[5]),
+    #                yaxis='y2',
+    #                visible='legendonly'
+    #                )
+    # )
+    #
+    # traces_y2.append(
+    #     go.Scatter(x=time, y=pressure_an_inlet, mode="lines",
+    #                name='Pressure Anode Inlet [Y2]',
+    #                line=dict(color=palette[6]),
+    #                yaxis='y2',
+    #                visible='legendonly'
+    #                )
+    # )
+    #
+    # traces_y2.append(
+    #     go.Scatter(x=time, y=pressure_an_outlet, mode="lines",
+    #                name='Pressure Anode Outlet [Y2]',
+    #                line=dict(color=palette[7]),
+    #                yaxis='y2',
+    #                visible='legendonly'
+    #                )
+    # )
+    #
+    # traces_y2.append(
+    #     go.Scatter(x=time, y=pressure_an_diff, mode="lines",
+    #                name='Pressure Anode Diff. [Y1]',
+    #                line=dict(color=palette[8]),
+    #                yaxis='y1',
+    #                visible='legendonly'
+    #                )
+    # )
+    #
+    # # CATHODE
+    # traces_y1.append(
+    #     go.Scatter(x=time, y=flow_cat, mode="lines",
+    #                name='Flowrate Cathode [Y1]',
+    #                line=dict(color=palette[9]),
+    #                yaxis='y1',
+    #                visible='legendonly'
+    #                )
+    # )
+    #
+    # traces_y1.append(
+    #     go.Scatter(x=time, y=temp_cat_inlet, mode="lines",
+    #                name='Temp Cathode Inlet [Y2]',
+    #                line=dict(color=palette[10]),
+    #                yaxis='y2',
+    #                visible='legendonly'
+    #                )
+    # )
+    #
+    # traces_y1.append(
+    #     go.Scatter(x=time, y=temp_cat_outlet, mode="lines",
+    #                name='Temp Cathode Outlet [Y2]',
+    #                line=dict(color=palette[11]),
+    #                yaxis='y2',
+    #                visible='legendonly'
+    #                )
+    # )
+    #
+    # traces_y1.append(
+    #     go.Scatter(x=time, y=temp_cat_diff, mode="lines",
+    #                name='Temp Cathode Diff. [Y2]',
+    #                line=dict(color=palette[12]),
+    #                yaxis='y2',
+    #                visible='legendonly'
+    #                )
+    # )
+    #
+    # traces_y2.append(
+    #     go.Scatter(x=time, y=pressure_cat_inlet, mode="lines",
+    #                name='Pressure Cathode Inlet [Y2]',
+    #                line=dict(color=palette[13]),
+    #                yaxis='y2',
+    #                visible='legendonly'
+    #                )
+    # )
+    #
+    # traces_y2.append(
+    #     go.Scatter(x=time, y=pressure_cat_outlet, mode="lines",
+    #                name='Pressure Cathode Outlet [Y2]',
+    #                line=dict(color=palette[14]),
+    #                yaxis='y2',
+    #                visible='legendonly'
+    #                )
+    # )
+    #
+    # traces_y2.append(
+    #     go.Scatter(x=time, y=pressure_cat_diff, mode="lines",
+    #                name='Pressure Cathode Diff. [Y1]',
+    #                line=dict(color=palette[15]),
+    #                yaxis='y1',
+    #                visible='legendonly'
+    #                )
+    # )
+    #
+    # # VARIABLES
+    # traces_y2.append(
+    #     go.Scatter(x=time, y=var01, mode="lines",
+    #                name='Load Cycle Count [Y2]',
+    #                line=dict(color=palette[15]),
+    #                yaxis='y2',
+    #                visible='legendonly'
+    #                )
+    # )
+    #
+    # traces_y2.append(
+    #     go.Scatter(x=time, y=var02, mode="lines",
+    #                name='AST Cycle Count Pt.1 [Y2]',
+    #                line=dict(color=palette[15]),
+    #                yaxis='y2',
+    #                visible='legendonly'
+    #                )
+    # )
+    #
+    # traces_y2.append(
+    #     go.Scatter(x=time, y=var03, mode="lines",
+    #                name='CHAR Cycle Count Pt.1 [Y2]',
+    #                line=dict(color=palette[15]),
+    #                yaxis='y2',
+    #                visible='legendonly'
+    #                )
+    # )
+    #
+    # traces_y2.append(
+    #     go.Scatter(x=time, y=var04, mode="lines",
+    #                name='AST Cycle Count Pt.2 [Y2]',
+    #                line=dict(color=palette[15]),
+    #                yaxis='y2',
+    #                visible='legendonly'
+    #                )
+    # )
+    #
+    # traces_y2.append(
+    #     go.Scatter(x=time, y=var08, mode="lines",
+    #                name='CHAR Cycle Count Pt.2 [Y2]',
+    #                line=dict(color=palette[15]),
+    #                yaxis='y2',
+    #                visible='legendonly'
+    #                )
+    # )
 
     # gather traces in a list which is given to dash-layout-function (drawTestFigureRig)
     traces = traces_y1 + traces_y2
 
     fig_data = traces
 
-    figure = go.Figure(fig_data).update_layout(
+    fig_tb = go.Figure(fig_data).update_layout(
 
-        title='Testbench Parameter (' + sample + ')',
+        title='Testbench Parameter (' + str(query_spec) + ')',
         title_font=dict(size=30, color='black'),
         title_x=0.5,
 
@@ -428,7 +509,11 @@ def drawFigureTestbench(sample):
         plot_bgcolor='white',
     )
 
-    return figure
+    fig_tb.write_html(
+        r'W:\Projekte\#Projektvorbereitung\09-ZBT\Insitu Corrosion\Ergebnisse\operando_analysis\AST_Plots\TB' + '\\' + query_spec + '_tb.html')
+
+
+    return fig_tb
 
 def drawFigurePOL(sample):
 
@@ -489,7 +574,7 @@ def drawFigurePOL(sample):
 
     fig_data = traces
 
-    figure = go.Figure(fig_data).update_layout(
+    pol_fig = go.Figure(fig_data).update_layout(
         # TITLE
         title='POL-Analysis',
         title_font=dict(size=30, color='black'),
@@ -552,7 +637,9 @@ def drawFigurePOL(sample):
         plot_bgcolor='white',
     )
 
-    return figure
+
+
+    return pol_fig
 
 def drawFigurePOLDec(sample):
 
@@ -1240,6 +1327,132 @@ def drawFigureASRextrapolation(sample):
         plot_bgcolor = 'white',
         )
     return fig
+
+def drawFigureASR(query):
+
+    file_asr = r'data' + '\\' + query + '\hfr.csv'
+
+    # DATAFRAMES
+    try:
+        data_df_asr = pd.read_csv(file_asr, encoding='cp1252', low_memory=False)
+    except:
+        return
+
+    df_asr = data_df_asr.sort_values(by=['date', 'time', 'amp'], ascending=[True, True, False])
+
+    chars = sorted(df_asr['char'].unique())
+
+    color = 0
+    traces_lineplot = []
+
+    for char in chars:
+        df_char = df_asr[df_asr['char'] == char].reset_index(drop=True)
+
+        measurements = sorted(df_char['#'].unique())
+
+        amp_list = []
+        asr_list = []
+
+        name = '@' + str(char-1) + ' AST Cycles'
+
+        for m in measurements:
+            df_meas = df_char[df_char['#'] == m].reset_index(drop=True)
+            amp = df_meas['amp'][0] * 20 / 25
+
+            f_low = 1E+2
+            f_high = 1E+4
+
+            df_meas = df_meas[(df_meas['Hz'] > f_low) & (df_meas['Hz'] < f_high)]
+            asr = df_meas[df_meas['ohm.1'] < 0]['ohm'].min() * 1000 * 25
+
+            amp_list.append(amp)
+            asr_list.append(asr)
+
+        traces_lineplot.append(
+            go.Scatter(x=amp_list, y=asr_list, mode="markers", marker=dict(color=palette[color]), name=name)
+        )
+
+        try:
+            x = amp_list
+            y = asr_list
+
+            # Perform spline interpolation
+            spline_fit = interp1d(x, y, kind='cubic')
+
+            # Generate finer x values for plotting the fitted spline
+            x_interp = np.linspace(min(x), max(x), 100)
+
+            # Compute the corresponding y values using the fitted spline
+            y_interp = spline_fit(x_interp)
+
+            traces_lineplot.append(
+                go.Scatter(x=x_interp, y=y_interp, mode="lines", line=dict(dash='dash', color=palette[color]),
+                           name=name + 'spline', showlegend=False)
+            )
+        except:
+            continue
+        color += 1
+        if color > 10:
+            color = 0
+
+    fig_asr = go.Figure(traces_lineplot).update_layout(
+        width=1400,
+        height=800,
+        title='Area Specific Resistance (' + str(query) + ')',
+        title_font=dict(size=30, color='black'),
+        title_x=0.5,
+        legend_font=dict(size=16),
+        legend=dict(
+            bgcolor="white",
+            bordercolor="black",
+            borderwidth=1,
+        ),
+        xaxis=dict(title='current density [A/cm2]',
+                   title_font=dict(size=24, color='black'),
+                   tickfont=dict(size=20, color='black'),
+                   minor=dict(ticks="inside", ticklen=5, showgrid=False),
+                   gridcolor='lightgrey',
+                   griddash='dash',
+                   showline=True,
+                   zeroline=True,
+                   zerolinewidth=2,
+                   zerolinecolor='black',
+                   ticks='inside',
+                   ticklen=10,
+                   tickwidth=2,
+                   linewidth=2,
+                   linecolor='black',
+                   mirror=True,
+
+                   # range=[0, 650]
+
+                   ),
+        yaxis=dict(title='ASR [mOhm*cm2]',
+                   title_font=dict(size=24, color='black'),
+                   tickfont=dict(size=20, color='black'),
+                   gridcolor='lightgrey',
+                   griddash='dash',
+                   minor=dict(ticks="inside", ticklen=5, showgrid=False),
+                   showline=True,
+                   zeroline=True,
+                   zerolinewidth=2,
+                   zerolinecolor='black',
+                   ticks='inside',
+                   ticklen=10,
+                   tickwidth=2,
+                   linewidth=2,
+                   linecolor='black',
+                   mirror=True,
+
+                   # range=[-20, 250]
+                   ),
+        plot_bgcolor='white',
+    )
+
+    fig_asr.write_html(
+        r'W:\Projekte\#Projektvorbereitung\09-ZBT\Insitu Corrosion\Ergebnisse\operando_analysis\AST_Plots\ASR' + '\\' + query + '_asr.html')
+
+    return fig_asr
 
 def drawFigureCTRextrapolation(sample):
 

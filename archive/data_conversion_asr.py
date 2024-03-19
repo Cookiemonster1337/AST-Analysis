@@ -2,7 +2,7 @@
 import pandas as pd
 import os
 
-tests = [t for t in os.listdir(r'C:\Users\j.kapp\PycharmProjects\AST-Analysis\rawdata')]
+tests = [t for t in os.listdir(r'../rawdata')]
 
 for t in tests:
 

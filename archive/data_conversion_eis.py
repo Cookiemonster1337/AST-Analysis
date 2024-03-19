@@ -1,7 +1,7 @@
 import pandas as pd
 import os
 
-tests = [t for t in os.listdir(r'C:\Users\j.kapp\PycharmProjects\AST-Analysis\rawdata')]
+tests = [t for t in os.listdir(r'../rawdata')]
 
 for t in tests:
 
@@ -43,49 +43,48 @@ for t in tests:
         date = df_info.iloc[2, 2]
         time = df_info.iloc[3, 2]
 
-        len(df_file)
 
         df_file['amp'] = amp
         df_file['date'] = date
         df_file['time'] = time
 
         # Smallest value below zero in each column
-        imag_sub = df_file[df_file['ohm.1'] < 0]['ohm.1'].min()
-        real_sub = df_file[df_file['ohm.1'] == imag_sub]['ohm'].min()
+        # imag_sub = df_file[df_file['ohm.1'] < 0]['ohm.1'].min()
+        # real_sub = df_file[df_file['ohm.1'] == imag_sub]['ohm'].min()
+        #
+        # # Smallest value above zero in each column
+        # imag_up = df_file[df_file['ohm.1'] > 0]['ohm.1'].min()
+        # real_up = df_file[df_file['ohm.1'] == imag_up]['ohm'].min()
+        #
+        # x = [real_sub, real_up]
+        # y = [imag_sub, imag_up]
+        #
+        # m = (y[1] - y[0]) / (x[1] - x[0])  # slope formula: (y2 - y1) / (x2 - x1)
+        # b = y[0] - m * x[0]  # y-intercept formula: y1 - m * x1
+        # x_line = [x[0], x[1]]
+        # y_line = [m * xi + b for xi in x_line]
+        #
+        # asr = round((-b / m) * 1000 * 25, 2)
+        #
+        # df_file['asr'] = asr
 
-        # Smallest value above zero in each column
-        imag_up = df_file[df_file['ohm.1'] > 0]['ohm.1'].min()
-        real_up = df_file[df_file['ohm.1'] == imag_up]['ohm'].min()
-
-        x = [real_sub, real_up]
-        y = [imag_sub, imag_up]
-
-        m = (y[1] - y[0]) / (x[1] - x[0])  # slope formula: (y2 - y1) / (x2 - x1)
-        b = y[0] - m * x[0]  # y-intercept formula: y1 - m * x1
-        x_line = [x[0], x[1]]
-        y_line = [m * xi + b for xi in x_line]
-
-        asr = round((-b / m) * 1000 * 25, 2)
-
-        df_file['asr'] = asr
-
+        print(amp_last, amp, char, date, time)
+        if amp == amp_last:
+            continue
         if amp < amp_last:
             df_file['char'] = char
             amp_last = amp
-        elif amp == amp_last:
-            continue
         else:
             char += 1
             df_file['char'] = char
             amp_last = amp
+        print(amp_last, amp, char)
 
         # if len(df_file) < 40:
         print('HFR-Data Files ' + str(hfr_counter) + ' ' + str(char))
         df_file['#'] = hfr_counter
         hfr_dfs[file] = df_file
         hfr_counter += 1
-
-
 
         if amp == 0.25 and freq_final == 0.1:
             print('EIS-Data (5A) Files ' + str(eis5a_counter))
