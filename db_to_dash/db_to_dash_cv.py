@@ -22,8 +22,6 @@ def plot_cv(test):
     plot_data = list(cursor)
     cv_df = pd.json_normalize(plot_data)
 
-
-
     measurements = cv_df['datetime'].unique()
 
     traces = []
@@ -83,7 +81,7 @@ def plot_cv(test):
                    ),
 
         # YAXIS
-        yaxis=dict(title='current [mA/cm2]',
+        yaxis=dict(title='current [mA/cm23]',
                    title_font=dict(size=24, color='black'),
                    tickfont=dict(size=20, color='black'),
                    gridcolor='lightgrey',

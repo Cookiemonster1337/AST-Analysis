@@ -1,22 +1,18 @@
 from dash import Dash, dcc, html, Input, Output
 import dash_bootstrap_components as dbc
-from db_to_dash.data_to_graph import drawFigurePOL
-import os
+from db_to_dash.db_to_dash_pol import test_list_tb, plot_pol
 
 app = Dash(__name__)
 
 app = Dash()
-
-data_folder = 'data'
-files = [f for f in os.listdir(data_folder) if os.path.isdir(os.path.join(data_folder, f))]
 
 app.layout = dbc.Container([
 
     html.Label("Select file:"),
     dcc.Dropdown(
         id='file-dropdown',
-        options=[{'label': file, 'value': file} for file in files],
-        value=files[0],
+        options=[{'label': test, 'value': test} for test in test_list_tb],
+        value=test_list_tb[0],
         multi=False
     ),
 
@@ -38,7 +34,7 @@ def update_graph(selected_file):
         return
     else:
         print(selected_file)
-        return drawFigurePOL(selected_file)
+        return plot_pol(selected_file)
 
 
 app.run_server(debug=True, port=8082)

@@ -14,7 +14,7 @@ palette = px.colors.qualitative.Bold
 def plot_lsv(test):
 
     collection = db[test]
-    query = {'mode':{'$in': ['lsv_p1','lsv_p2']}}
+    query = {'mode':{'$in': ['lsv_p1', 'lsv_p2']}}
     projection = {'#':1, 's':1, 'A':1, 'v_vs_ref':1, 'datetime':1, 'source_file':1}
 
     cursor = collection.find(query, projection)
@@ -22,23 +22,33 @@ def plot_lsv(test):
     plot_data = list(cursor)
     cv_df = pd.json_normalize(plot_data)
 
-    measurements = cv_df['datetime'].unique()
+    cv_df.sort_values(by='datetime', inplace=True)
 
+    measurements = cv_df['datetime'].unique()
+    print(measurements)
     traces = []
     c = 0
-
     i = 1
-    for date in measurements[::2]:
 
-        try:
-            cycle_df = cv_df[(cv_df['datetime'] == date) & (cv_df['datetime'] == measurements[i+1])]
-            i +=1
-        except IndexError:
-            continue
+    for date in measurements[1::2]:
+        print(date)
+
+        cycle_df_p1 = cv_df[(cv_df['datetime'] == date)]
+
+        cycle_df_p2 = cv_df[(cv_df['datetime'] == measurements[i + 1])]
+        i += 2
+
+        cycle_df_p2['#'] = cycle_df_p2['#'] + cycle_df_p1['#'].max()
+        cycle_df_p2['s'] = cycle_df_p2['s'] + cycle_df_p1['s'].max()
+
+        cycle_df_p1.sort_values(by='#', inplace=True)
+        cycle_df_p2.sort_values(by='#', inplace=True)
+
+        cycle_df = pd.concat([cycle_df_p1[:-5], cycle_df_p2[5:]])
 
         cycle_df.sort_values(by='#', inplace=True)
 
-        name = str(date)
+        name = str(str(date)[:-10])
 
         time = cycle_df['s']
         u = cycle_df['v_vs_ref'] * 1000

@@ -18,6 +18,9 @@ for t in tests:
     collection = db[t]
 
     loop = 0
+
+    log_dfs = {}
+
     for log in log_files:
         loop += 1
         if collection.find_one({'source_file': log}):
@@ -29,6 +32,22 @@ for t in tests:
 
             log_df = pd.read_csv(os.path.join(tb_data, log), encoding='cp1252', skiprows=17, low_memory=False)
 
+            log_df.sort_values(by='Time Stamp', ascending=True)
+
+            log_df = log_df.reset_index(drop=True)
+
+            log_df.loc[:, 'variable_20'] = np.nan
+
+            cycles = log_df[log_df['File Mark'].str.contains('polcurve_dec_01', na=False)].index.tolist()
+
+            x = 1
+            for c in cycles:
+                log_df.loc[c, 'variable_20'] = x
+                x += 1
+
+            log_df['File Mark'].fillna(method='ffill', inplace=True)
+            log_df['variable_20'].fillna(method='ffill', inplace=True)
+
             log_df['datetime'] = pd.to_datetime(log_df['Time Stamp'])
 
             log_df['test_id'] = t
@@ -36,10 +55,14 @@ for t in tests:
             log_df['device'] = device
             log_df['starttime'] = start
 
-            log_dict = log_df.to_dict(orient='records')
+            log_dfs[log] = log_df
 
-            print(str(loop) + 'of' + str(len(log_files)) + ' , ' + str(testloop) + 'of' + str(len(tests)))
 
-            collection.insert_many(log_dict)
+        log_data_df = pd.concat(log_dfs.values(), ignore_index=True)
+        log_dict = log_data_df.to_dict(orient='records')
+
+        print(str(loop) + 'of' + str(len(log_files)) + ' , ' + str(testloop) + 'of' + str(len(tests)))
+
+        collection.insert_many(log_dict)
 
 
