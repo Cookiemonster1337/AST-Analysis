@@ -1,6 +1,6 @@
 from dash import Dash, dcc, html, Input, Output
 import dash_bootstrap_components as dbc
-from db_to_dash.db_to_dash_tb import test_list, plot_tb
+from db_to_dash.db_to_dash_tb import test_list_tb, plot_tb
 
 app = Dash(__name__)
 
@@ -14,8 +14,8 @@ app.layout = dbc.Container([
     html.Label("Select file:"),
     dcc.Dropdown(
         id='file-dropdown',
-        options=[{'label': test, 'value': test} for test in test_list],
-        value=test_list[0],
+        options=[{'label': test, 'value': test} for test in test_list_tb],
+        value=test_list_tb[0],
         multi=False
     ),
 

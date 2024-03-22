@@ -7,7 +7,7 @@ client = MongoClient('mongodb://jkp:phd2024@172.16.134.8:27017/')
 db = client.dep6_gtb
 
 test_list = db.list_collection_names()
-test_list_tb = sorted([t for t in test_list if t.endswith('CHAR')])
+test_list_char = sorted([t for t in test_list if t.endswith('CHAR')])
 
 palette = px.colors.qualitative.Bold
 
@@ -24,6 +24,7 @@ def plot_pol(test):
                   'variable_01':1,
                   'variable_02':1
                   }
+
     cursor = collection.find(query, projection)
     print('query data...')
 
