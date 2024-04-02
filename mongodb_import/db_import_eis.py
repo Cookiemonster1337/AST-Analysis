@@ -32,7 +32,9 @@ for t in tests:
                               nrows=12, sep='\t', low_memory=False)
 
         amp = float(info_df.iloc[11, 2])
+        freq_start = float(info_df.iloc[8, 2])
         freq_final = float(info_df.iloc[9, 2])
+
 
         date = info_df.iloc[2, 2]
         time = info_df.iloc[3, 2]
@@ -47,11 +49,14 @@ for t in tests:
         eis_df['source_file'] = eis_file
         eis_df['device'] = device
         eis_df['starttime'] = time
+        eis_df['ac_amp'] = amp
+        eis_df['freq_start'] = freq_start
+        eis_df['freq_final'] = freq_final
 
-        if (freq_final == 10000):
+        if (freq_final >= 10000):
             eis_df['mode'] = 'hfr'
 
-        if (freq_final == 0.1):
+        if (freq_final <= 1000):
             eis_df['mode'] = 'char'
 
         eis_dict = eis_df.to_dict(orient='records')

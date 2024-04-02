@@ -4,7 +4,7 @@ from db_to_dash.db_to_dash_pol import test_list_char, plot_pol
 
 app = Dash(__name__)
 
-app = Dash()
+app.title = 'AST-POL'
 
 app.layout = dbc.Container([
 

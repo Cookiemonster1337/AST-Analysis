@@ -7,14 +7,22 @@ client = MongoClient('mongodb://jkp:phd2024@172.16.134.8:27017/')
 db = client.dep6_gtb
 
 test_list = db.list_collection_names()
-test_list_eis = [t for t in test_list if t.endswith('EIS')]
+test_list_eis = sorted([t for t in test_list if t.endswith('EIS')])
 
 palette = px.colors.qualitative.Bold
 
-def plot_eis(test):
+def plot_eis(test, j):
 
     collection = db[test]
-    query = {'mode':'char'}
+
+    if j == '2a':
+        ac_amp = 2.5
+    if j == '1a':
+        ac_amp = 1.25
+    if j == '01a':
+        ac_amp = 0.25
+
+    query = {'mode':'char', 'ac_amp': ac_amp}
     projection = {'#':1, 'z_real':1, 'z_imag':1, 'amp':1, 'datetime':1, 'Hz':1, 'source_file':1}
 
     cursor = collection.find(query, projection)
@@ -38,7 +46,7 @@ def plot_eis(test):
         z_imag = cycle_df['z_imag'] * -1000 * 25
 
         traces.append(
-            go.Scatter(x=z_real, y=z_imag, mode="lines", marker=dict(size=10, color=palette[c]), line=dict(color=palette[c]),
+            go.Scatter(x=z_real, y=z_imag, mode="markers", marker=dict(size=10, color=palette[c]), line=dict(color=palette[c]),
                        name=name))
 
         if c > 5:
@@ -48,9 +56,9 @@ def plot_eis(test):
 
     fig_data = traces
 
-    figure = go.Figure(fig_data).update_layout(
+    eis_fig = go.Figure(fig_data).update_layout(
         # TITLE
-        title='EIS @0.2A/cm²',
+        title='EIS @' + str(ac_amp*20/25) + 'A/cm2 (' + str(test) + ')',
         title_font=dict(size=30, color='black'),
         title_x=0.5,
         legend_font=dict(size=16),
@@ -65,7 +73,7 @@ def plot_eis(test):
         ),
         plot_bgcolor='white',
     )
-    figure.update_xaxes(title='real [mOhm*cm²]',
+    eis_fig.update_xaxes(title='real [mOhm*cm²]',
                      title_font=dict(size=24, color='black'),
                      tickfont=dict(size=20, color='black'),
                      minor=dict(ticks="inside", ticklen=5, showgrid=False),
@@ -86,7 +94,7 @@ def plot_eis(test):
 
                      )
     # YAXIS
-    figure.update_yaxes(title='-imag. [mOhm*cm²]',
+    eis_fig.update_yaxes(title='-imag. [mOhm*cm²]',
                      title_font=dict(size=24, color='black'),
                      tickfont=dict(size=20, color='black'),
                      gridcolor='lightgrey',
@@ -106,4 +114,9 @@ def plot_eis(test):
                      # range=[-20, 250]
                      )
 
-    return figure
+    eis_fig.write_html(
+        r'W:\Projekte\#Projektvorbereitung\09-ZBT\Insitu Corrosion\Ergebnisse\operando_analysis\AST_Plots\EIS' + '\\' + str(test) + '_' + str(ac_amp*20) + '.html')
+
+    print('plotting successfull!')
+
+    return eis_fig

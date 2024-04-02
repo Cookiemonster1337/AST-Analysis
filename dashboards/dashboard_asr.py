@@ -1,23 +1,19 @@
 from dash import Dash, dcc, html, Input, Output
 import dash_bootstrap_components as dbc
-from db_to_dash.data_to_graph import drawFigureASR
-import os
+from db_to_dash.db_to_dash_asr import test_list_asr, plot_asr
 
 
 app = Dash()
 
 app.title = 'ASR'
 
-data_folder = 'data'
-files = [f for f in os.listdir(data_folder) if os.path.isdir(os.path.join(data_folder, f))]
-
 app.layout = dbc.Container([
 
     html.Label("Select file:"),
     dcc.Dropdown(
         id='file-dropdown',
-        options=[{'label': file, 'value': file} for file in files],
-        value=files[0],
+        options=[{'label': test, 'value': test} for test in test_list_asr],
+        value=test_list_asr[0],
         multi=False
     ),
 
@@ -34,11 +30,12 @@ app.layout = dbc.Container([
 )
 
 
-def update_graph(sel_file):
-    if sel_file is None:
+def update_graph(selected_file):
+    if selected_file is None:
         return
     else:
-        return drawFigureASR(sel_file)
+        print(selected_file)
+        return plot_asr(selected_file)
 
 
 app.run_server(debug=True, port=8084)

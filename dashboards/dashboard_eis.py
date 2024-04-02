@@ -16,6 +16,12 @@ app.layout = dbc.Container([
             multi=False
         ),
 
+    dbc.Row(dcc.Tabs(id='tabs-eis', value='2a', children=[
+        dcc.Tab(label='2 A/cm2', value='2a'),
+        dcc.Tab(label='1 A/cm2', value='1a'),
+        dcc.Tab(label='0.1 A/cm2', value='01a'),
+    ])),
+
     dbc.Row([
         dcc.Graph(id='graph-eis', style={'height': '800px'}),
     ]),
@@ -24,15 +30,15 @@ app.layout = dbc.Container([
 
 @app.callback(
     Output('graph-eis', 'figure'),
-    [Input('file-dropdown', 'value')]
+    [Input('file-dropdown', 'value'), Input('tabs-eis', 'value'),]
 )
 
-def update_graph(selected_file):
+def update_graph(selected_file, tab):
     if selected_file is None:
         return
     else:
         print(selected_file)
-        return plot_eis(selected_file)
+        return plot_eis(selected_file, tab)
 
 app.run_server(debug=True,
                port=8086

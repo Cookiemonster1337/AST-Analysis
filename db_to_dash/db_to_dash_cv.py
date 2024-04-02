@@ -7,7 +7,7 @@ client = MongoClient('mongodb://jkp:phd2024@172.16.134.8:27017/')
 db = client.dep6_gtb
 
 test_list = db.list_collection_names()
-test_list_cv = [t for t in test_list if t.endswith('CV')]
+test_list_cv = sorted([t for t in test_list if t.endswith('CV')])
 
 palette = px.colors.qualitative.Bold
 
@@ -49,9 +49,9 @@ def plot_cv(test):
 
     fig_data = traces
 
-    figure = go.Figure(fig_data).update_layout(
+    cv_fig = go.Figure(fig_data).update_layout(
         # TITLE
-        title='CV-Analysis (@100 mV/s)',
+        title='CV-Analysis (' + str(test) + ')',
         title_font=dict(size=30, color='black'),
         title_x=0.5,
 
@@ -81,7 +81,7 @@ def plot_cv(test):
                    ),
 
         # YAXIS
-        yaxis=dict(title='current [mA/cm23]',
+        yaxis=dict(title='current [mA/cm2]',
                    title_font=dict(size=24, color='black'),
                    tickfont=dict(size=20, color='black'),
                    gridcolor='lightgrey',
@@ -115,4 +115,10 @@ def plot_cv(test):
         plot_bgcolor='white',
     )
 
-    return figure
+    cv_fig.write_html(
+        r'W:\Projekte\#Projektvorbereitung\09-ZBT\Insitu Corrosion\Ergebnisse\operando_analysis\AST_Plots\CV' + '\\'  + str(test) + '.html')
+
+    print('plotting successfull!')
+
+
+    return cv_fig

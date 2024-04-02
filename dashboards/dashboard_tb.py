@@ -6,9 +6,6 @@ app = Dash(__name__)
 
 app.title = 'AST-TB'
 
-# data_folder = 'data'
-# files = [f for f in os.listdir(data_folder) if os.path.isdir(os.path.join(data_folder, f))]
-
 app.layout = dbc.Container([
 
     html.Label("Select file:"),
@@ -38,6 +35,8 @@ def update_graph(selected_file):
     else:
         print(selected_file)
         return plot_tb(selected_file)
+
+
 
 
 app.run_server(debug=True, port=8080)

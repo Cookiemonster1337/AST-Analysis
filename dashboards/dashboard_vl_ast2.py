@@ -4,7 +4,7 @@ from db_to_dash.db_to_dash_vl import test_list_vl_ast2, plot_vl
 
 app = Dash(__name__)
 
-app = Dash()
+app.title = 'AST2-CL'
 
 app.layout = dbc.Container([
 

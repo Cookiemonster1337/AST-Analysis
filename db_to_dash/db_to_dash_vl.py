@@ -76,7 +76,7 @@ def plot_vl(test, op):
                    insidetextanchor='middle',
                    textfont=dict(size=20, color='black'),
                    # marker=dict(size=10, color=palette[c]),
-                   error_y=dict(type='data', array=[current_std]),
+                   # error_y=dict(type='data', array=[current_std]),
                    name=name
                    )
         )
@@ -87,19 +87,19 @@ def plot_vl(test, op):
 
     vl_fig = go.Figure(fig_data).update_layout(
 
-        title='current_density (' + str(test) + ')',
+        title='current_density @' + str(op) + ' (' + str(test) + ')',
         title_font=dict(size=30, color='black'),
         title_x=0.5,
 
         hoverlabel=dict(bgcolor='white', font_size=14),
         hovermode='x unified',
 
-        xaxis=dict(title='duration [h]',
+        xaxis=dict(title='AST-Cycle',
                    title_font=dict(size=24, color='black'),
                    tickfont=dict(size=20, color='black'),
-                   minor=dict(ticks="inside", ticklen=5, showgrid=False),
-                   gridcolor='lightgrey',
-                   griddash='dash',
+                   # minor=dict(ticks="inside", ticklen=5, showgrid=False),
+                   # gridcolor='lightgrey',
+                   # griddash='dash',
                    showline=True,
                    zeroline=True,
                    zerolinewidth=2,
@@ -115,7 +115,7 @@ def plot_vl(test, op):
                    mirror=True,
                    ),
 
-        yaxis=dict(title='arbitrary unit [Y1]',
+        yaxis=dict(title='current @' + str(op),
                    title_font=dict(size=24, color='black'),
                    tickfont=dict(size=20, color='black'),
                    gridcolor='lightgrey',
@@ -135,21 +135,6 @@ def plot_vl(test, op):
                    mirror=True,
                   ),
 
-        yaxis2=dict(title='arbitrary unit [Y2]',
-                    overlaying='y',
-                    side='right',
-                    title_font=dict(size=24, color='black'),
-                    tickfont=dict(size=20, color='black'),
-                    minor=dict(ticks="inside", ticklen=5, showgrid=False),
-                    ticks='inside',
-                    ticklen=10,
-                    tickwidth=2,
-
-                    linewidth=2,
-                    linecolor='black',
-
-                    ),
-
         legend_font=dict(size=16),
         legend=dict(
             x=1.3,
@@ -163,6 +148,7 @@ def plot_vl(test, op):
         plot_bgcolor='white',
     )
 
-
+    vl_fig.write_html(
+        r'W:\Projekte\#Projektvorbereitung\09-ZBT\Insitu Corrosion\Ergebnisse\operando_analysis\AST_Plots\CL' + '\\' + str(test) + '_' + str(op) + '.html')
 
     return vl_fig
